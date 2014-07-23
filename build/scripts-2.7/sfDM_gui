@@ -1,0 +1,3 @@
+import sfDM.ui.fdm_gui
+
+sfDM.ui.fdm_gui.start()

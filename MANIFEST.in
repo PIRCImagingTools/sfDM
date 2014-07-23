@@ -1,0 +1,4 @@
+include sfDM_gui README LICENSE CHANGES
+include sfDM/res/*
+include sfDM/ui/*
+

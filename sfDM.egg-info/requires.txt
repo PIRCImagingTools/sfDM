@@ -1,0 +1,9 @@
+networkx
+nibabel >=1.0
+nipy
+nipype >=0.8
+numpy >=1.3
+scipy >=0.7
+matplotlib
+pillow
+ipython

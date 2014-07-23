@@ -1,0 +1,129 @@
+==============================================
+**serial functional Diffusion Mapping (sfDM)**
+==============================================
+
+INSTALLATION
+============
+
+Dependencies
+------------
+The following software must be installed first:
+
+- fsl
+- afni
+- python-nipy
+- python-nipype
+
+The following will be installed along with the sfDM package if not already present:
+
+- numpy
+- scipy
+- matplotlib
+- pillow
+- networkx
+- ipython
+
+Installing
+----------
+
+From Pypi:
+pip install sfDM
+
+From github:
+
+git pull https://github.com/PIRCImagingTools/sfDM
+
+cd into directory
+
+python setup.py install
+
+
+Running
+=======
+
+Following installation, type ``sfDM_gui`` in a terminal to lauch the gui
+
+Pre-processing
+--------------
+Tumor region of interest for each time point must be manually drawn and saved as a binary mask in nifti format (must be in the same 3D space as the DWI images)
+
+High resolution reference image must be brain extracted first. A high quality, properly brain-extracted image here can make the difference between successful registration and failing. This step is not automated to allow the option of different image contrasts/protocols to serve as the High Res template.
+
+Data set up
+-----------
+Previously generated configuration file can be loaded with the *Load Config* Button. Make sure to save the configuration once the information is entered before running the first step.
+
+Patient Info
+------------
+
+1) **PID**: Patient ID to be used in file naming and identification.
+
+2) **Parent Dir**: Directory where output files (as well as crash logs) will be saved.
+
+3) **Struct Brain**: Location of brain extracted High Res reference image.
+
+4) **Tumor Center**: *X,Y,Z* coordinates of the center of the tumor (in High Res reference space). This will be used to generate 3-plane images of each FDM map.
+
+5) **Treatment**: If the patient began any treatment of interest, check to create it on the fdm timeline. Days post baseline is the number of days after the baseline scan (first time point)
+
+6) **Use GridEngine**: Check to run the registrations in a parallel environment (*experimental*). The environment must be properly configured. The registrations will be submitted to long.q
+
+7) **Nonlinear Reg**: This step will use FSL's FNIRT non-linear registration to register each time point into reference space.(*We are currently optimizing the registration parameters*).
+
+8) **Reg ADC**: In the event that the original B0 images are not available (only ADCs), the ADC maps can be used directly to register to the reference images. While B0's are preferable, this method has yielded good results. 
+
+Scan Info
+---------
+Use the +/- Scan buttons to add or remove time points
+
+1) **DWI**: Location of B0 image (nii/nii.gz). This can be the stand-alone B0, or 4D stacked B0/S1. If the *Reg ADC* option is checked, this will not be used and may be left blank
+
+2) **ADC**-*Required*: Location of ADC image (nii/nii.gz). If registering to B0 image, they must both be in the same 3D space.
+
+3) **REF**-*Required*: Location of medium to high resolution image, preferably T2 weighted acquired at the same time to serve as intermediate registration image (nii/nii.gz).
+
+4) **ROI**-*Required*: Location of manually delineated tumor ROI in the same 3D space as the ADC/B0 images (nii/nii.gz).
+
+5) **Time(Days)**-*Required for Time line*: Time in days from baseline scan of the current time point.
+
+**Remember to save any configuration changes before running!**
+
+Reg
+___
+This will register every time point into common space using a series of linear registrations (and a final non-linear reg is the option is selected).
+
+Keep an eye on the terminal for any errors and warnings. 
+
+Upon completion, use the **View** button to inspect the registrations. This will load the *FDM/Outputs/MergedRegs.nii.gz* file into fslview for convenient inspecting. This is a 4D stack of all the registrations, overlaid over the *Struct Brain* image. 
+
+**Important**: Ensure that all registrations are visibly accurate before proceeding, or else the analysis will be invalid. 
+
+Time Points
+___________
+
+Here you select from the list the *fDM Maps* to be generated. There are two lists: Baseline and Serial. By convention, baseline should be all time points compared back to the baseline scan, while serial is every subsequent scan compared to the previous.
+
+You may, however, also include any additional comparisons you wish to make. 
+
+*Only the time points added to the lists will have fDM Maps generated*
+
+**Make sure to SAVE the time line when done**
+
+Maps
+____
+
+This will generate the maps,plots, and images chosen in the previous step, as well as output fDM metrics to the files *serial.csv* and *baseline.csv* in the *parent_dir*
+
+All generated images are saved in *FDM/Outputs* in the parent_dir
+
+Use the **View** Button to load the generated maps into FSL
+
+Time Line
+_________
+
+If desired, this step will generate and output the the patient's fDM timeline to the parent_dir.
+
+
+
+
+
