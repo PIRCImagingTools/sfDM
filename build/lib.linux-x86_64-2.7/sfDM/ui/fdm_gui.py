@@ -121,7 +121,10 @@ class Top_Panel(wx.Panel):
         self.nonlinear = wx.CheckBox(self, -1, label=u"Nonlinear Reg",
                                    style=wx.ALIGN_RIGHT)
 
-        self.use_adc = wx.CheckBox(self, -1, label=u"Reg ADC",
+        self.use_adc = wx.CheckBox(self, -1, label=u"Use ADC for Reg",
+                                   style=wx.ALIGN_RIGHT)
+
+        self.ref_space = wx.CheckBox(self, -1, label=u"ROI in Ref Space",
                                    style=wx.ALIGN_RIGHT)
 
         sizer.Add(self.treatment, (4,0), (1,1),
@@ -139,9 +142,11 @@ class Top_Panel(wx.Panel):
         sizer.Add(self.nonlinear, (5,1), (1,1),
                  wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
 
-        sizer.Add(self.use_adc, (5,2), (1,1),
+        sizer.Add(self.ref_space, (5,2), (1,1),
                  wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
 
+        sizer.Add(self.use_adc, (5,3), (1,1),
+                 wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
 #--------------------------------------------------------------------------#
         sizer.AddGrowableCol(1)
         box_sizer.Add(sizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND, 5)
@@ -257,6 +262,7 @@ class Scan_Buttons(wx.Panel):
             self.top.grid.SetValue(config['grid_eng'])
             self.top.nonlinear.SetValue(config['non_linear'])
             self.top.use_adc.SetValue(config['use_adc'])
+            self.top.ref_space.SetValue(config['ref_space'])
 
             if int(config['number_of_scans']) > self.scans.number_of_scans:
                 diff = int(config['number_of_scans']) - self.scans.number_of_scans
@@ -301,7 +307,7 @@ class Scan_Buttons(wx.Panel):
         grid_eng = self.top.grid.IsChecked()
         non_linear = self.top.nonlinear.IsChecked()
         use_adc = self.top.use_adc.IsChecked()
-
+        ref_space = self.top.ref_space.IsChecked()
 
         if os.path.isdir(parent_dir):
             config['PID'] = pid
@@ -314,6 +320,7 @@ class Scan_Buttons(wx.Panel):
             config['number_of_scans'] = self.scans.number_of_scans
             config['non_linear'] = non_linear
             config['use_adc'] = use_adc
+            config['ref_space'] = ref_space
 
             for x in range(self.scans.number_of_scans):
                 sid = 'scan_{0:0>2d}'.format((x+1))

@@ -5,12 +5,13 @@ Created on Mar 11, 2013
 '''
 import nipype.interfaces.io as nio
 import nipype.interfaces.fsl as fsl
-import nipype.interfaces.afni as afni
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-import os
+import os,sys
 import json
 import sfDM.fdm.afni_ext as afni_ext
+from nipype import config
+
 
 fsl.FSLCommand.set_default_output_type('NIFTI')
 
@@ -41,11 +42,12 @@ parent_dir = cfg['parent_dir']
 HighRes = cfg['struct']
 non_linear = cfg['non_linear']
 use_adc = cfg['use_adc']
+ref_space = cfg['ref_space']
 
 scan_list = ["scan_{0:0>2d}".format(x+1) for x in range(cfg['number_of_scans'])]
 print scan_list
 
-os.chdir(parent_dir)
+config.set('execution','crashdump_dir',parent_dir)
 
 def GetImages(scan_id, config):
     DWI = config[scan_id]['dwi']
@@ -73,9 +75,6 @@ betREF = pe.Node(interface=fsl.BET(),name='betREF')
 betREF.inputs.frac=0.2
 betREF.inputs.robust=True
 
-
-
-
 REFlinHighRes = pe.Node(interface=fsl.FLIRT(), name='REFlinHighRes')
 REFlinHighRes.inputs.reference=HighRes
 REFlinHighRes.inputs.dof = 6
@@ -86,16 +85,14 @@ REFlinHighRes.inputs.searchr_z = [-45, 45]
 TumorlinREF=pe.Node(interface=fsl.FLIRT(), name='TumorlinREF')
 TumorlinREF.inputs.apply_xfm=True
 
-TumorfftREF=pe.Node(interface=afni_ext.Transform(), name='TumorfftREF')
+TumorfftREF=pe.Node(interface=afni_ext.Allineate(), name='TumorfftREF')
 TumorfftREF.inputs.outputtype='NIFTI'
 
 NormallinREF=pe.Node(interface=fsl.FLIRT(), name='NormallinREF')
 NormallinREF.inputs.apply_xfm=True
 
-NormalfftREF=pe.Node(interface=afni_ext.Transform(), name='NormalfftREF')
+NormalfftREF=pe.Node(interface=afni_ext.Allineate(), name='NormalfftREF')
 NormalfftREF.inputs.outputtype='NIFTI'
-
-
 
 REFfftHighRes=pe.Node(interface=afni_ext.Volreg(), name='REFfftHighRes')
 REFfftHighRes.inputs.basefile=HighRes
@@ -115,13 +112,13 @@ NormallinHighRes=pe.Node(interface=fsl.FLIRT(), name='NormallinHighRes')
 NormallinHighRes.inputs.apply_xfm=True
 NormallinHighRes.inputs.reference=HighRes
 
-ADCfftHighRes=pe.Node(interface=afni_ext.Transform(), name='ADCfftHighRes')
+ADCfftHighRes=pe.Node(interface=afni_ext.Allineate(), name='ADCfftHighRes')
 ADCfftHighRes.inputs.outputtype='NIFTI'
 
-TumorfftHighRes=pe.Node(interface=afni_ext.Transform(), name='TumorfftHighRes')
+TumorfftHighRes=pe.Node(interface=afni_ext.Allineate(), name='TumorfftHighRes')
 TumorfftHighRes.inputs.outputtype='NIFTI'
 
-NormalfftHighRes=pe.Node(interface=afni_ext.Transform(), name='NormalfftHighRes')
+NormalfftHighRes=pe.Node(interface=afni_ext.Allineate(), name='NormalfftHighRes')
 NormalfftHighRes.inputs.outputtype='NIFTI'
 
 
@@ -137,7 +134,19 @@ LowThreshTumor.inputs.thresh=0.2
 LowThreshNormal=pe.Node(interface=fsl.maths.Threshold(), name='LowThreshNormal')
 LowThreshNormal.inputs.thresh=0.2
 
-if use_adc:
+MaskREF=pe.Node(interface=fsl.maths.ApplyMask(), name='MaskREF')
+MaskREF.inputs.mask_file=HighRes
+
+MaskADC=pe.Node(interface=fsl.maths.ApplyMask(), name='MaskADC')
+MaskADC.inputs.mask_file=HighRes
+
+MaskTumor=pe.Node(interface=fsl.maths.ApplyMask(), name='MaskTumor')
+MaskTumor.inputs.mask_file=HighRes
+
+MaskNormal=pe.Node(interface=fsl.maths.ApplyMask(), name='MaskNormal')
+MaskNormal.inputs.mask_file=HighRes
+
+if use_adc and not ref_space:
 
     ADClinREF = pe.Node(interface=fsl.FLIRT(), name='ADClinREF')
     ADClinREF.inputs.dof = 6
@@ -162,9 +171,11 @@ if use_adc:
                    (ADClinREF, ADCfftREF, [('out_file','in_file')]),
                       (betREF, ADCfftREF, [('out_file','basefile')]),
                 (TumorlinREF,TumorfftREF, [('out_file','in_file')]),
-                  (ADCfftREF,TumorfftREF, [('dfile','dfile')]),
+                    (betREF, TumorfftREF, [('out_file','master')]),
+                  (ADCfftREF,TumorfftREF, [('out_matrix_file','in_matrix')]),
               (NormallinREF,NormalfftREF, [('out_file','in_file')]),
-                 (ADCfftREF,NormalfftREF, [('dfile','dfile')]),
+                   (betREF, NormalfftREF, [('out_file','master')]),
+                 (ADCfftREF,NormalfftREF, [('out_matrix_file','in_matrix')]),
                   (betREF, REFlinHighRes, [('out_file','in_file')]),
            (REFlinHighRes, REFfftHighRes, [('out_file','in_file')]),
            (REFlinHighRes, ADClinHighRes, [('out_matrix_file', 'in_matrix_file')]),
@@ -174,14 +185,60 @@ if use_adc:
            (TumorfftREF, TumorlinHighRes, [('out_file','in_file')]),
          (NormalfftREF, NormallinHighRes, [('out_file','in_file')]),
            (ADClinHighRes, ADCfftHighRes, [('out_file','in_file')]),
-           (REFfftHighRes, ADCfftHighRes, [('dfile','dfile')]),
+           (REFfftHighRes, ADCfftHighRes, [('out_matrix_file','in_matrix')]),
        (TumorlinHighRes, TumorfftHighRes, [('out_file','in_file')]),
      (NormallinHighRes, NormalfftHighRes, [('out_file','in_file')]),
-         (REFfftHighRes, TumorfftHighRes, [('dfile','dfile')]),
-        (REFfftHighRes, NormalfftHighRes, [('dfile','dfile')])
+         (REFfftHighRes, TumorfftHighRes, [('out_matrix_file','in_matrix')]),
+        (REFfftHighRes, NormalfftHighRes, [('out_matrix_file','in_matrix')]),
+                 (REFfftHighRes, MaskREF, [('out_file','in_file')]),
+                 (ADCfftHighRes, MaskADC, [('out_file','in_file')]),
+             (TumorfftHighRes, MaskTumor, [('out_file','in_file')]),
+           (NormalfftHighRes, MaskNormal, [('out_file','in_file')])
+
     ])
 
-else:
+
+elif use_adc and ref_space:
+
+    ADClinREF = pe.Node(interface=fsl.FLIRT(), name='ADClinREF')
+    ADClinREF.inputs.dof = 6
+
+    ADCfftREF=pe.Node(interface=afni_ext.Volreg(), name='ADCfftREF')
+    ADCfftREF.inputs.args='-Fourier'
+    ADCfftREF.inputs.outputtype='NIFTI'
+
+    Reg = pe.Workflow(name='Reg')
+    Reg.base_dir=parent_dir+'/FDM'
+    Reg.connect([
+                           (data, betADC, [('ADC','in_file')]),
+                           (data, betREF, [('REF','in_file')]),
+                      (betADC, ADClinREF, [('out_file','in_file')]),
+                      (betREF, ADClinREF, [('out_file','reference')]),
+                   (ADClinREF, ADCfftREF, [('out_file','in_file')]),
+                      (betREF, ADCfftREF, [('out_file','basefile')]),
+                  (betREF, REFlinHighRes, [('out_file','in_file')]),
+           (REFlinHighRes, REFfftHighRes, [('out_file','in_file')]),
+           (REFlinHighRes, ADClinHighRes, [('out_matrix_file', 'in_matrix_file')]),
+         (REFlinHighRes, TumorlinHighRes, [('out_matrix_file', 'in_matrix_file')]),
+        (REFlinHighRes, NormallinHighRes, [('out_matrix_file', 'in_matrix_file')]),
+               (ADCfftREF, ADClinHighRes, [('out_file','in_file')]),
+                  (data, TumorlinHighRes, [('Tumor','in_file')]),
+                 (data, NormallinHighRes, [('Normal','in_file')]),
+           (ADClinHighRes, ADCfftHighRes, [('out_file','in_file')]),
+           (REFfftHighRes, ADCfftHighRes, [('out_matrix_file','in_matrix')]),
+       (TumorlinHighRes, TumorfftHighRes, [('out_file','in_file')]),
+     (NormallinHighRes, NormalfftHighRes, [('out_file','in_file')]),
+         (REFfftHighRes, TumorfftHighRes, [('out_matrix_file','in_matrix')]),
+        (REFfftHighRes, NormalfftHighRes, [('out_matrix_file','in_matrix')]),
+                 (REFfftHighRes, MaskREF, [('out_file','in_file')]),
+                 (ADCfftHighRes, MaskADC, [('out_file','in_file')]),
+             (TumorfftHighRes, MaskTumor, [('out_file','in_file')]),
+           (NormalfftHighRes, MaskNormal, [('out_file','in_file')])
+    ])
+
+
+
+elif not use_adc and not ref_space:
     betb0 = pe.Node(interface=fsl.BET(),name='betb0')
     betb0.inputs.frac=0.2
     betb0.inputs.robust=True
@@ -196,7 +253,7 @@ else:
     ADClinREF=pe.Node(interface=fsl.FLIRT(), name='ADClinREF')
     ADClinREF.inputs.apply_xfm=True
 
-    ADCfftREF=pe.Node(interface=afni_ext.Transform(), name='ADCfftREF')
+    ADCfftREF=pe.Node(interface=afni_ext.Allineate(), name='ADCfftREF')
     ADCfftREF.inputs.outputtype='NIFTI'
 
     extract_b0 = pe.Node(interface=fsl.ExtractROI(), name = 'extract_b0')
@@ -240,27 +297,110 @@ else:
                   (b0linREF, b0fftREF, [('out_file','in_file')]),
                     (betREF, b0fftREF, [('out_file','basefile')]),
              (TumorlinREF,TumorfftREF, [('out_file','in_file')]),
-                (b0fftREF,TumorfftREF, [('dfile','dfile')]),
+                 (betREF, TumorfftREF, [('out_file','reference')]),
+                (b0fftREF,TumorfftREF, [('out_matrix_file','in_matrix')]),
            (NormallinREF,NormalfftREF, [('out_file','in_file')]),
-               (b0fftREF,NormalfftREF, [('dfile','dfile')]),
+                (betREF, NormalfftREF, [('out_file','reference')]),
+               (b0fftREF,NormalfftREF, [('out_matrix_file','in_matrix')]),
                  (ADClinREF,ADCfftREF, [('out_file','in_file')]),
-                  (b0fftREF,ADCfftREF, [('dfile','dfile')]),
+                   (betREF, ADCfftREF, [('out_file','reference')]),
+                  (b0fftREF,ADCfftREF, [('out_matrix_file','in_matrix')]),
                (betREF, REFlinHighRes, [('out_file','in_file')]),
         (REFlinHighRes, REFfftHighRes, [('out_file','in_file')]),
-       (REFlinHighRes, ADClinHighRes, [('out_matrix_file', 'in_matrix_file')]),
+        (REFlinHighRes, ADClinHighRes, [('out_matrix_file', 'in_matrix_file')]),
       (REFlinHighRes, TumorlinHighRes, [('out_matrix_file', 'in_matrix_file')]),
      (REFlinHighRes, NormallinHighRes, [('out_matrix_file', 'in_matrix_file')]),
             (ADCfftREF, ADClinHighRes, [('out_file','in_file')]),
         (TumorfftREF, TumorlinHighRes, [('out_file','in_file')]),
       (NormalfftREF, NormallinHighRes, [('out_file','in_file')]),
         (ADClinHighRes, ADCfftHighRes, [('out_file','in_file')]),
-        (REFfftHighRes, ADCfftHighRes, [('dfile','dfile')]),
+        (REFfftHighRes, ADCfftHighRes, [('out_matrix_file','in_matrix')]),
     (TumorlinHighRes, TumorfftHighRes, [('out_file','in_file')]),
   (NormallinHighRes, NormalfftHighRes, [('out_file','in_file')]),
-      (REFfftHighRes, TumorfftHighRes, [('dfile','dfile')]),
-     (REFfftHighRes, NormalfftHighRes, [('dfile','dfile')])
+      (REFfftHighRes, TumorfftHighRes, [('out_matrix_file','in_matrix')]),
+     (REFfftHighRes, NormalfftHighRes, [('out_matrix_file','in_matrix')]),
+              (REFfftHighRes, MaskREF, [('out_file','in_file')]),
+              (ADCfftHighRes, MaskADC, [('out_file','in_file')]),
+          (TumorfftHighRes, MaskTumor, [('out_file','in_file')]),
+        (NormalfftHighRes, MaskNormal, [('out_file','in_file')])
+
     ])
 
+elif not use_adc and ref_space:
+
+    betb0 = pe.Node(interface=fsl.BET(),name='betb0')
+    betb0.inputs.frac=0.2
+    betb0.inputs.robust=True
+
+    b0linREF = pe.Node(interface=fsl.FLIRT(), name='b0linREF')
+    b0linREF.inputs.dof = 6
+
+    b0fftREF=pe.Node(interface=afni_ext.Volreg(), name='b0fftREF')
+    b0fftREF.inputs.args='-Fourier'
+    b0fftREF.inputs.outputtype='NIFTI'
+
+    ADClinREF=pe.Node(interface=fsl.FLIRT(), name='ADClinREF')
+    ADClinREF.inputs.apply_xfm=True
+
+    ADCfftREF=pe.Node(interface=afni_ext.Allineate(), name='ADCfftREF')
+    ADCfftREF.inputs.outputtype='NIFTI'
+
+    extract_b0 = pe.Node(interface=fsl.ExtractROI(), name = 'extract_b0')
+    extract_b0.inputs.t_size = 1
+
+    def get_high_signal(DWI):
+        import numpy as np
+        from nipy import load_image
+
+        img = load_image(DWI)
+        if img.ndim == 3:
+            return 0
+        else:
+            x = [np.mean(img[:,:,:,_]) for _ in xrange(img.shape[3])]
+            return np.argmax(x)
+
+
+    find_b0 = pe.Node(name='find_b0',
+                        interface = util.Function(input_names=['DWI'],
+                                             output_names=['index'],
+                                             function = get_high_signal))
+    Reg = pe.Workflow(name='Reg')
+    Reg.base_dir=parent_dir+'/FDM'
+    Reg.connect([
+                       (data, find_b0, [('DWI', 'DWI')]),
+                 (find_b0, extract_b0, [('index', 't_min')]),
+                    (data, extract_b0, [('DWI','in_file')]),
+                   (extract_b0, betb0, [('roi_file', 'in_file')]),
+                        (data, betREF, [('REF','in_file')]),
+                     (betb0, b0linREF, [('out_file','in_file')]),
+                    (betREF, b0linREF, [('out_file','reference')]),
+                 (b0linREF, ADClinREF, [('out_matrix_file','in_matrix_file')]),
+                   (betREF, ADClinREF, [('out_file','reference')]),
+                      (data,ADClinREF, [('ADC','in_file')]),
+                  (b0linREF, b0fftREF, [('out_file','in_file')]),
+                    (betREF, b0fftREF, [('out_file','basefile')]),
+                 (ADClinREF,ADCfftREF, [('out_file','in_file')]),
+                   (betREF, ADCfftREF, [('out_file','reference')]),
+                  (b0fftREF,ADCfftREF, [('out_matrix_file','in_matrix')]),
+               (betREF, REFlinHighRes, [('out_file','in_file')]),
+        (REFlinHighRes, REFfftHighRes, [('out_file','in_file')]),
+        (REFlinHighRes, ADClinHighRes, [('out_matrix_file', 'in_matrix_file')]),
+      (REFlinHighRes, TumorlinHighRes, [('out_matrix_file', 'in_matrix_file')]),
+     (REFlinHighRes, NormallinHighRes, [('out_matrix_file', 'in_matrix_file')]),
+            (ADCfftREF, ADClinHighRes, [('out_file','in_file')]),
+               (data, TumorlinHighRes, [('Tumor','in_file')]),
+              (data, NormallinHighRes, [('Normal','in_file')]),
+        (ADClinHighRes, ADCfftHighRes, [('out_file','in_file')]),
+        (REFfftHighRes, ADCfftHighRes, [('out_matrix_file','in_matrix')]),
+    (TumorlinHighRes, TumorfftHighRes, [('out_file','in_file')]),
+  (NormallinHighRes, NormalfftHighRes, [('out_file','in_file')]),
+      (REFfftHighRes, TumorfftHighRes, [('out_matrix_file','in_matrix')]),
+     (REFfftHighRes, NormalfftHighRes, [('out_matrix_file','in_matrix')]),
+              (REFfftHighRes, MaskREF, [('out_file','in_file')]),
+              (ADCfftHighRes, MaskADC, [('out_file','in_file')]),
+          (TumorfftHighRes, MaskTumor, [('out_file','in_file')]),
+        (NormalfftHighRes, MaskNormal, [('out_file','in_file')])
+    ])
 
 if non_linear:
     def get_ADC(LinADC):
@@ -306,8 +446,9 @@ if non_linear:
     datasink=pe.Node(interface=nio.DataSink(), name="datasink")
     datasink.inputs.base_directory= parent_dir+'/FDM/Outputs'
     datasink.inputs.substitutions = [('_scan_id_',''),
-                                    ('_flirt_FFT_flirt_FFT_allineate_thresh', '_highres'),
-                                    ('_brain_flirt_volreg_flirt_FFT_allineate_thresh','_highres')]
+                                    ('_brain_flirt_volreg_masked_warp_thresh', '_highres'),
+                                    ('_flirt_allineate_flirt_allineate_masked_warp_thresh','_highres'),
+                                    ('_brain_flirt_volreg_flirt_allineate_masked_warped_thresh','_highres')]
 
 
 else:
@@ -319,22 +460,25 @@ else:
                                              output_names=['REF'],
                                              function = do_nothing))
 
-    REFwarpHighRes=pe.Node(interface=afni.preprocess.Allineate(), name='REFwarpHighRes')
+    REFwarpHighRes=pe.Node(interface=afni_ext.Allineate(), name='REFwarpHighRes')
     REFwarpHighRes.inputs.cost='hel'
     REFwarpHighRes.inputs.reference=HighRes
     REFwarpHighRes.inputs.two_pass=False
     REFwarpHighRes.inputs.outputtype='NIFTI'
 
-    ADCwarpHighRes=pe.Node(interface=afni.preprocess.Allineate(), name='ADCwarpHighRes')
+    ADCwarpHighRes=pe.Node(interface=afni_ext.Allineate(), name='ADCwarpHighRes')
     ADCwarpHighRes.inputs.outputtype='NIFTI'
+    ADCwarpHighRes.inputs.master=HighRes
     ADCwarpHighRes.inputs.reference=HighRes
 
-    TumorwarpHighRes=pe.Node(interface=afni.preprocess.Allineate(), name='TumorwarpHighRes')
+    TumorwarpHighRes=pe.Node(interface=afni_ext.Allineate(), name='TumorwarpHighRes')
     TumorwarpHighRes.inputs.outputtype='NIFTI'
+    TumorwarpHighRes.inputs.master=HighRes
     TumorwarpHighRes.inputs.reference=HighRes
 
-    NormalwarpHighRes=pe.Node(interface=afni.preprocess.Allineate(), name='NormalwarpHighRes')
+    NormalwarpHighRes=pe.Node(interface=afni_ext.Allineate(), name='NormalwarpHighRes')
     NormalwarpHighRes.inputs.outputtype='NIFTI'
+    NormalwarpHighRes.inputs.master=HighRes
     NormalwarpHighRes.inputs.reference=HighRes
 
     Warp = pe.Workflow(name='Warp')
@@ -353,9 +497,9 @@ else:
     datasink=pe.Node(interface=nio.DataSink(), name="datasink")
     datasink.inputs.base_directory= parent_dir+'/FDM/Outputs'
     datasink.inputs.substitutions = [('_scan_id_',''),
-                                    ('_flirt_FFT_flirt_FFT_allineate_thresh', '_highres'),
-                                    ('_brain_flirt_volreg_flirt_FFT_allineate_thresh',
-                                     '_highres')]
+                                    ('_brain_flirt_volreg_masked_allineate_thresh','_highres'),
+                                    ('_brain_flirt_volreg_flirt_allineate_masked_allineate_thresh','_highres'),
+                                    ('_flirt_allineate_flirt_allineate_masked_allineate_thresh','_highres')]
 
 TumorBin = pe.Node(interface=fsl.UnaryMaths(), name='TumorBin')
 TumorBin.inputs.operation = 'bin'
@@ -363,11 +507,11 @@ TumorBin.inputs.operation = 'bin'
 FDM = pe.Workflow(name='FDM')
 FDM.base_dir=parent_dir
 FDM.connect([
-              (Reg, Warp, [('ADCfftHighRes.out_file','get_Ref.LinADC')]),
-              (Reg, Warp, [('ADCfftHighRes.out_file', 'ADCwarpHighRes.in_file')]),
-              (Reg, Warp, [('REFfftHighRes.out_file', 'REFwarpHighRes.in_file')]),
-              (Reg, Warp, [('TumorfftHighRes.out_file', 'TumorwarpHighRes.in_file')]),
-              (Reg, Warp, [('NormalfftHighRes.out_file', 'NormalwarpHighRes.in_file')]),
+              (Reg, Warp, [('MaskADC.out_file','get_Ref.LinADC')]),
+              (Reg, Warp, [('MaskADC.out_file', 'ADCwarpHighRes.in_file')]),
+              (Reg, Warp, [('MaskREF.out_file', 'REFwarpHighRes.in_file')]),
+              (Reg, Warp, [('MaskTumor.out_file', 'TumorwarpHighRes.in_file')]),
+              (Reg, Warp, [('MaskNormal.out_file', 'NormalwarpHighRes.in_file')]),
          (Warp, TumorBin, [('LowThreshTumor.out_file', 'in_file')]),
          (Warp, datasink, [('LowThreshREF.out_file','Ref.@ref')]),
           (Warp,datasink, [('LowThreshADC.out_file','ADC.@adc')]),

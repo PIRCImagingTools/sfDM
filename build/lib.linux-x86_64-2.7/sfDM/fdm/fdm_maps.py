@@ -16,7 +16,7 @@ import shutil
 from sfDM.vis import colormaps
 from sfDM.vis.map_maker import MapMaker
 import re
-
+from nipype import config
 
 fsl.FSLCommand.set_default_output_type('NIFTI')
 
@@ -28,6 +28,8 @@ timeline_file = os.environ['fdm_timeline']
 with open(config_file, 'r') as f:
     cfg = json.load(f)
 parent = cfg['parent_dir']
+
+config.set('execution','crashdump_dir',parent)
 
 with open(timeline_file, 'r') as f:
     tmln = json.load(f)
