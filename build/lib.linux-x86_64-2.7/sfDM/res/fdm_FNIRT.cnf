@@ -7,19 +7,19 @@
 #	Value to mask out in --in image. Default =0.0
 --impinval=0
 #	sub-sampling scheme, default 4,2,1,1
---subsamp=4,4,2
+--subsamp=4,2
 # 	Max # of non-linear iterations, default 5,5,5,5
---miter=5,5,10
+--miter=5,10
 #	FWHM (in mm) of gaussian smoothing kernel for input volume, default 6,4,2,2
---infwhm=8,6,3
+--infwhm=6,3
 #	FWHM (in mm) of gaussian smoothing kernel for ref volume, default 4,2,0,0
---reffwhm=8,4,2
+--reffwhm=4,2
 #	Weigth of membrane energy regularisation, default depending on --ssqlambda and --regmod switches. See user documetation.
---lambda=300,150,75
+--lambda=300,150
 #	Estimate intensity-mapping if set, deafult 1 (true)
---estint=1,1,0
+--estint=1,0
 #       Apply the mask if set, default 1 (true)
---applyrefmask=1,1,1
+--applyrefmask=1,1
 #       Apply the mask if set, default 1 (true)
 --applyinmask=1
 #	(approximate) resolution (in mm) of warp basis in x-, y- and z-direction, default 10,10,10

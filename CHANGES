@@ -1,2 +1,7 @@
 Updated gui runner
 Modified AFNI registration
+
+0.3
+---
+Added option for Ref space tumor masks
+New splash screen!

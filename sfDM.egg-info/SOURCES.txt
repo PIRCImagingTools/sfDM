@@ -22,6 +22,7 @@ sfDM/ui/__init__.py
 sfDM/ui/__init__.pyc
 sfDM/ui/fdm_gui.py
 sfDM/ui/fdm_gui.pyc
+sfDM/ui/stat_result.json
 sfDM/vis/__init__.py
 sfDM/vis/colormaps.py
 sfDM/vis/map_maker.py
