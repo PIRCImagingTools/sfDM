@@ -31,17 +31,25 @@ The following will be installed along with the sfDM package if not already prese
 Installing
 ----------
 
-From Pypi:
+### From Pypi
+
+```
 pip install sfDM
+```
 
-From github:
+### From github
 
-git pull https://github.com/PIRCImagingTools/sfDM
+```bash
+pwd=$(pwd)
 
-cd into directory
+git clone https://github.com/PIRCImagingTools/sfDM /tmp/sfDM
+
+cd /tmp/sfDM
 
 python setup.py install
 
+cd $pwd && rm -rf /tmp/sfDM
+```
 
 Running
 =======
@@ -127,8 +135,3 @@ Time Line
 _________
 
 If desired, this step will generate and output the the patient's fDM timeline to the parent_dir.
-
-
-
-
-
