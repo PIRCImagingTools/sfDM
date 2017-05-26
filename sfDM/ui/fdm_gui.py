@@ -5,8 +5,10 @@ import shlex
 import subprocess
 import sys
 try:
+#    import wxversion
+#    wxversion.select('3.0')
     import wx
-    import wxPython.lib.scrolledpanel as scrolled
+    import wx.lib.scrolledpanel as scrolled
 except ImportError:
     raise ImportError,"wxPython module is required."
 
@@ -174,11 +176,11 @@ class Top_Panel(wx.Panel):
             file_picker.Destroy()
 
 
-class Scan_Panel(scrolled.wxScrolledPanel):
+class Scan_Panel(scrolled.ScrolledPanel):
 
     def __init__(self, parent):
-        scrolled.wxScrolledPanel.__init__(self, parent, -1,
-                                 style=wx.SIMPLE_BORDER|wx.ALWAYS_SHOW_SB)
+        scrolled.ScrolledPanel.__init__(self, parent, -1,
+                                 style=wx.SIMPLE_BORDER)
         self.frame = parent
         self.number_of_scans = 2
         self.time_points = []
