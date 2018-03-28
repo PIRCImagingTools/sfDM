@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(name='sfDM',
-      version='0.3',
+      version='0.3.2',
       description='serial function Diffusion Mapping software',
       long_description=open('README').read(),
       author='Rafael Ceschin',

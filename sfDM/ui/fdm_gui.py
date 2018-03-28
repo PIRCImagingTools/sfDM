@@ -117,6 +117,12 @@ class Top_Panel(wx.Panel):
         self.vaccine_field = wx.TextCtrl(self, -1, value="",
                                       style=wx.TE_PROCESS_ENTER)
 
+        threshold_label= wx.StaticText(self, -1,
+                    label=u"Threshold for CI (+/-)", style=wx.ALIGN_LEFT)
+
+        self.thresh_field= wx.TextCtrl(self, -1, value="400",
+                                      style=wx.TE_PROCESS_ENTER)
+
         self.grid = wx.CheckBox(self, -1, label=u"Use GridEngine",
                                 style=wx.ALIGN_RIGHT)
 
@@ -136,6 +142,12 @@ class Top_Panel(wx.Panel):
                 wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
 
         sizer.Add(self.vaccine_field, (4,2),(1,1),
+                wx.ALIGN_LEFT,5)
+
+        sizer.Add(threshold_label, (4,3), (1,1),
+                wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
+
+        sizer.Add(self.thresh_field, (4,4),(1,1),
                 wx.ALIGN_LEFT,5)
 
         sizer.Add(self.grid, (5,0), (1,1),
@@ -261,6 +273,11 @@ class Scan_Buttons(wx.Panel):
             self.top.tumor_center_z_field.SetValue(config['tumor_center'][2])
             self.top.treatment.SetValue(config['treatment'])
             self.top.vaccine_field.SetValue(config['v_days'])
+            try:
+                self.top.thresh_field.SetValue(config['threshold'])
+            except Exception, e:
+                print("Could not find theshold value, using 400")
+                self.top.thresh_field.SetValue(u"400")
             self.top.grid.SetValue(config['grid_eng'])
             self.top.nonlinear.SetValue(config['non_linear'])
             self.top.use_adc.SetValue(config['use_adc'])
@@ -306,6 +323,7 @@ class Scan_Buttons(wx.Panel):
         tumor_center = [tumor_center_x,tumor_center_y,tumor_center_z]
         treatment = self.top.treatment.IsChecked()
         v_days = self.top.vaccine_field.GetValue()
+        thresh = self.top.thresh_field.GetValue()
         grid_eng = self.top.grid.IsChecked()
         non_linear = self.top.nonlinear.IsChecked()
         use_adc = self.top.use_adc.IsChecked()
@@ -318,6 +336,7 @@ class Scan_Buttons(wx.Panel):
             config['tumor_center'] = tumor_center
             config['treatment'] = treatment
             config['v_days'] = v_days
+            config['threshold'] = thresh
             config['grid_eng'] = grid_eng
             config['number_of_scans'] = self.scans.number_of_scans
             config['non_linear'] = non_linear
@@ -785,8 +804,10 @@ class View_Frame(wx.Frame):
     def OnView(self, event):
         scan_idx = self.all_maps_list.GetSelection()
         parent_dir = self.parent.parent_dir_field.GetValue()
+        threshold = self.parent.thresh_field.GetValue()
         struct = self.parent.struct_field.GetValue()
         pid = self.parent.pid_field.GetValue()
+        print(threshold)
 
         if self.map_list[scan_idx] == 'MergedRegs.nii.gz':
             image = parent_dir+'/FDM/Outputs/MergedRegs.nii.gz'
@@ -801,10 +822,14 @@ class View_Frame(wx.Frame):
         else:
             image = parent_dir+'/FDM/Outputs/Maps/'+self.map_list[scan_idx]
             mask = parent_dir+'/FDM/Outputs/Maps/'+pid+'_Tumor_Mask.nii'
-            cmd = 'fslview -m ortho '+struct+' -l GreyScale '+\
-                mask+' -l "Green" -b 0,1 -t 0.4 '+image+\
-                ' -l "Red" -b 400,1000 -t 0.8 ' +image+\
-                ' -l "Blue" -b -400,-1000 -t 0.8'
+            thresh_fl = float(threshold)
+            uthresh = float(thresh_fl)*4
+            n_thresh = -thresh_fl
+            n_uthresh = -4*thresh_fl
+            cmd = 'fslview -m ortho {0} -l GreyScale {1} -l "Green" -b 0,1 -t 0.4'.format(struct, mask)+\
+                ' {0} -l "Red" -b {1},{2} -t 0.8'.format(image, thresh_fl, uthresh)+\
+                ' {0} -l "Blue" -b {1},{2} -t 0.8'.format(image, n_thresh, n_uthresh)
+            print cmd
         print "VIEW "+ image
 
         if os.path.isfile(image):

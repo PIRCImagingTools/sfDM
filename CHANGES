@@ -5,3 +5,7 @@ Modified AFNI registration
 ---
 Added option for Ref space tumor masks
 New splash screen!
+
+0.3.2
+---
+Added option to specify own threshold 

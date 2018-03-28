@@ -8,7 +8,7 @@ import matplotlib.pylab as pylab
 
 
 def get_crop(mat):
-    """ find first slice with non-zero voxels in each dimension""" 
+    """ find first slice with non-zero voxels in each dimension"""
     for i in xrange(mat.shape[0]):
         xmin = i
         if np.sum(mat[i, :, :]) > 0:
@@ -16,24 +16,24 @@ def get_crop(mat):
     for i in xrange(mat.shape[0]-1, 0, -1):
         xmax = i
         if np.sum(mat[i, :, :]) > 0:
-                break 
+                break
     for i in xrange(mat.shape[1]):
         ymin = i
         if np.sum(mat[:, i, :]) > 0:
-                break 
+                break
     for i in xrange(mat.shape[1]-1, 0, -1):
         ymax = i
         if np.sum(mat[:, i, :]) > 0:
-                break 
+                break
     for i in xrange(mat.shape[2]):
         zmin = i
         if np.sum(mat[:, :, i]) > 0:
-                break 
+                break
     for i in xrange(mat.shape[2]-1, 0, -1):
         zmax = i
         if np.sum(mat[:, :, i]) > 0:
-                break 
-    return xmin,xmax,ymin,ymax,zmin,zmax
+                break
+    return int(xmin),int(xmax),int(ymin),int(ymax),int(zmin),int(zmax)
 
 def normalize_dims(data, diag):
     x,y,z = 1,1,1
@@ -138,7 +138,7 @@ class MapMaker(object):
         fig = pylab.figure(figsize=(4,3))
         for image in self.image_list:
             fig.add_subplot(1,3,1) ##### AXIAL
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, Z_cut],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, int(Z_cut)],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.y_trans*(self.ymax - self.ymin)],
@@ -146,7 +146,7 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(1,3,2) ##### COR
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, Y_cut,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, int(Y_cut),self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -154,7 +154,7 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(1,3,3) #### SAG
-            plt.imshow(np.rot90(image[0][X_cut,self.ymin:self.ymax,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][int(X_cut),self.ymin:self.ymax,self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0,self.y_trans*(self.ymax - self.ymin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -169,7 +169,7 @@ class MapMaker(object):
         fig = pylab.figure(figsize=(4,3))
         for image in self.image_list:
             fig.add_subplot(3,1,1) ##### AXIAL
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, Z_cut],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, int(Z_cut)],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.y_trans*(self.ymax - self.ymin)],
@@ -177,7 +177,7 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(3,1,2) ##### COR
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, Y_cut,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, int(Y_cut),self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -185,7 +185,7 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(3,1,3) #### SAG
-            plt.imshow(np.rot90(image[0][X_cut,self.ymin:self.ymax,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][int(X_cut),self.ymin:self.ymax,self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0,self.y_trans*(self.ymax - self.ymin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -200,7 +200,7 @@ class MapMaker(object):
         fig = pylab.figure(figsize=(4,4))
         for image in self.image_list:
             fig.add_subplot(1,3,1) ##### AXIAL
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, Z_cut],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, int(Z_cut)],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.y_trans*(self.ymax - self.ymin)],
@@ -208,15 +208,15 @@ class MapMaker(object):
             plt.axhline(y=self.y_trans*(Y_cut-self.ymin),
                                         xmax=0.05, color='green') #A-P Marker
             plt.axhline(y=self.y_trans*(Y_cut-self.ymin),
-                                        xmin=0.95, color='green') #A-P Marker 
+                                        xmin=0.95, color='green') #A-P Marker
             plt.axvline(x=self.x_trans*(X_cut-self.xmin),
                                         ymax=0.05, color='red') #R-L Marker
             plt.axvline(x=self.x_trans*(X_cut-self.xmin),
-                                        ymin=0.95, color='red') #R-L Marker 
+                                        ymin=0.95, color='red') #R-L Marker
             plt.axis('off')
 
             fig.add_subplot(1,3,2) ##### COR
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, Y_cut,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, int(Y_cut),self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -232,7 +232,7 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(1,3,3) #### SAG SPECIFIC TO STANDARD SPACE (ROTATE ABOUT Z AXIS )
-            plt.imshow(np.rot90(image[0][-X_cut,self.ymin:self.ymax,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][int(-X_cut),self.ymin:self.ymax,self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0,self.y_trans*(self.ymax - self.ymin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -255,21 +255,21 @@ class MapMaker(object):
         fig = pylab.figure(figsize=(4,3))
         for image in self.image_list:
             fig.add_subplot(3,3,1) ##### AXIAL - SKIP
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, Z_cut-Skip],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, int(Z_cut-Skip)],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.y_trans*(self.ymax - self.ymin)],
                     origin='lower')
             plt.axis('off')
             fig.add_subplot(3,3,2) ##### COR - SKIP
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, Y_cut-Skip,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, int(Y_cut-Skip),self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.z_trans*(self.zmax - self.zmin)],
                     origin='lower')
             plt.axis('off')
             fig.add_subplot(3,3,3) #### SAG - SKIP
-            plt.imshow(np.rot90(image[0][X_cut-Skip,self.ymin:self.ymax,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][int(X_cut-Skip),self.ymin:self.ymax,self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0,self.y_trans*(self.ymax - self.ymin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -277,7 +277,7 @@ class MapMaker(object):
             plt.axis('off')
 ############################################
             fig.add_subplot(3,3,4) ##### AXIAL
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, Z_cut],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, int(Z_cut)],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.y_trans*(self.ymax - self.ymin)],
@@ -285,7 +285,7 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(3,3,5) ##### COR
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, Y_cut,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, int(Y_cut),self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -293,7 +293,7 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(3,3,6) #### SAG
-            plt.imshow(np.rot90(image[0][X_cut,self.ymin:self.ymax,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][int(X_cut),self.ymin:self.ymax,self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0,self.y_trans*(self.ymax - self.ymin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -301,7 +301,7 @@ class MapMaker(object):
             plt.axis('off')
 ###########################################
             fig.add_subplot(3,3,7) ##### AXIAL + SKIP
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, Z_cut+Skip],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax,self.ymin:self.ymax, int(Z_cut+Skip)],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.y_trans*(self.ymax - self.ymin)],
@@ -309,7 +309,7 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(3,3,8) ##### COR + SKIP
-            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, Y_cut+Skip,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][self.xmin:self.xmax, int(Y_cut+Skip),self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0, self.x_trans*(self.xmax - self.xmin),
                             0, self.z_trans*(self.zmax - self.zmin)],
@@ -317,12 +317,12 @@ class MapMaker(object):
             plt.axis('off')
 
             fig.add_subplot(3,3,9) #### SAG + SKIP
-            plt.imshow(np.rot90(image[0][X_cut+Skip,self.ymin:self.ymax,self.zmin:self.zmax],3),
+            plt.imshow(np.rot90(image[0][int(X_cut+Skip),self.ymin:self.ymax,self.zmin:self.zmax],3),
                     cmap=image[1], vmax=image[2], vmin=image[3], alpha=image[4],
                     extent=[0,self.y_trans*(self.ymax - self.ymin),
                             0, self.z_trans*(self.zmax - self.zmin)],
                     origin='lower')
-            plt.axis('off') 
+            plt.axis('off')
         plt.savefig(savefile, dpi=500, facecolor=[0,0,0], bbox_inches=None,
                     pad_inches=0)
         plt.close()

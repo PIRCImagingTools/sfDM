@@ -35,6 +35,11 @@ with open(timeline_file, 'r') as f:
     tmln = json.load(f)
 
 outputdir=parent+'/FDM/Outputs/'
+try:
+    threshval = float(cfg['threshold'])
+except Exception, e:
+    threshval = 400
+    print("Could not find threshold value, using 400")
 
 #-----------------------Begin Map Calculations--------------------------------------------------------------------#
 
@@ -149,7 +154,7 @@ ConfidenceInterval=pe.Node(name='ConfidenceInterval',
                    interface=Function(input_names=['value1','value2', 'thresh'],
                                       output_names=['pos_thresh','neg_thresh'],
                                       function=ConfInt))
-ConfidenceInterval.inputs.thresh = 400
+ConfidenceInterval.inputs.thresh = threshval
 
 
 
@@ -199,8 +204,8 @@ def create_image(bg,mask, overlay, X , Y , Z , savefile):
     """
     image = MapMaker(bg)
     image.add_overlay(mask, .1, 1, colormaps.green(), alpha=0.4)
-    image.add_overlay(overlay, -400, -1000, colormaps.blue_r())
-    image.add_overlay(overlay, 400, 1000, colormaps.red())
+    image.add_overlay(overlay, -threshval, -3*threshval, colormaps.blue_r())
+    image.add_overlay(overlay, threshval, 3*threshval, colormaps.red())
     image.save_3plane(X, Y, Z, savefile)
 
 def create_weight_image(bg, mask, X, Y, Z, savefile):
@@ -211,7 +216,7 @@ def create_weight_image(bg, mask, X, Y, Z, savefile):
     image.add_overlay(mask, .1, 'max',colormaps.green_r(), alpha= 0.9 )
     image.save_3plane_vertical(X,Y,Z,savefile)
 
-def output_metrics(Time1, Time2, SN1, SN2, vectors, weights=[], se=400):
+def output_metrics(Time1, Time2, SN1, SN2, vectors, weights=[], se=threshval):
     """
     Calculates fDM metrics given two time points, where Time1,2 are vectors of ADC values,
     SN1,2 are string values of the time point names, vectors are PCA eigenvectors, and
@@ -280,7 +285,8 @@ def output_metrics(Time1, Time2, SN1, SN2, vectors, weights=[], se=400):
     return valuedict
 
 
-def plot_adc(results,Val1,Val2,TP1,TP2,weights,se=400,sfile='Time1Time2'):
+def plot_adc(results,Val1,Val2,TP1,TP2,weights,se=threshval,sfile='Time1Time2'):
+    axis_lim = threshval*8
     X=np.arange(0,len(Val1))
     Scale=np.zeros((len(Val1), 3)) # matrix of RGB colors matching each voxel
     iADC = 0.0
@@ -304,10 +310,10 @@ def plot_adc(results,Val1,Val2,TP1,TP2,weights,se=400,sfile='Time1Time2'):
     plt.plot(X,X,lw=3,ls='-', color='Green',alpha=0.8)
     plt.plot(X,X-se,lw=3,ls='--', color='Green',alpha=0.8)
     plt.plot(X,X+se,lw=3,ls='--', color='Green',alpha=0.8)
-    plt.plot([0,-results['vectors'][0,0]*3000]+Val1.mean(),
-             [0,-results['vectors'][0,1]*3000]+Val2.mean(),lw=3,color='Yellow')
-    plt.plot([0,results['vectors'][0,0]*3000]+Val1.mean(),
-             [0,results['vectors'][0,1]*3000]+Val2.mean(),lw=3,color='Yellow')
+    plt.plot([0,-results['vectors'][0,0]*axis_lim]+Val1.mean(),
+             [0,-results['vectors'][0,1]*axis_lim]+Val2.mean(),lw=3,color='Yellow')
+    plt.plot([0,results['vectors'][0,0]*axis_lim]+Val1.mean(),
+             [0,results['vectors'][0,1]*axis_lim]+Val2.mean(),lw=3,color='Yellow')
     fig1.set_facecolor([1,1,1])
     ax.patch.set_alpha(0.25)
     textstr = 'mx_fiADC = {:.2f} mx_fdADC = {:.2f} mx_fDMratio = {:.2f}  Slope = {:.2f}$^\circ$\n'.format(
@@ -318,8 +324,8 @@ def plot_adc(results,Val1,Val2,TP1,TP2,weights,se=400,sfile='Time1Time2'):
       results['wt_fiADC'],results['wt_fdADC'],results['wt_FDMratio'])
 
     #ax.text(10,10, textstr, bbox={'facecolor':'white','alpha':'0.8','pad':10})
-    ax.set_xlim(0,3000)
-    ax.set_ylim(0,3000)
+    ax.set_xlim(0,axis_lim)
+    ax.set_ylim(0,axis_lim)
     ax.set_xlabel('Scan '+TP1,fontsize=14,fontweight='bold')
     ax.set_ylabel('Scan '+TP2,fontsize=14,fontweight='bold')
     #fig1.suptitle(results['timepoint'], fontsize=14, fontweight='bold')
